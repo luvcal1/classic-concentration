@@ -6,19 +6,21 @@ using Rebus.Core;
 
 namespace Rebus.UI
 {
-    /// <summary>
-    /// Singleton manager for all in-game UI elements.
-    /// Creates and controls the top bar (score, attempts, timer),
-    /// solve puzzle button, solve input panel, game over panel, and victory panel.
-    /// </summary>
     public class UIManager : MonoBehaviour
     {
         public static UIManager Instance { get; private set; }
 
-        [Header("Color Scheme")]
-        private readonly Color goldColor = new Color(1f, 0.843f, 0f);            // #FFD700
-        private readonly Color darkBlueColor = new Color(0.102f, 0.137f, 0.494f); // #1A237E
-        private readonly Color whiteColor = Color.white;
+        // Modern color palette
+        private readonly Color accentCyan = new Color(0f, 0.9f, 1f);              // Vibrant cyan
+        private readonly Color accentGold = new Color(1f, 0.75f, 0.2f);           // Warm amber
+        private readonly Color surfaceDark = new Color(0.08f, 0.08f, 0.16f);      // Card background
+        private readonly Color surfaceMid = new Color(0.12f, 0.13f, 0.22f);       // Elevated surface
+        private readonly Color surfaceLight = new Color(0.18f, 0.2f, 0.32f);      // Lighter surface
+        private readonly Color textPrimary = new Color(0.94f, 0.96f, 0.98f);      // Near white
+        private readonly Color textSecondary = new Color(0.55f, 0.58f, 0.65f);    // Muted
+        private readonly Color dangerRed = new Color(1f, 0.35f, 0.35f);
+        private readonly Color successGreen = new Color(0.3f, 0.85f, 0.5f);
+        private readonly Color overlayColor = new Color(0.02f, 0.02f, 0.06f, 0.85f);
 
         // --- Top Bar ---
         private TextMeshProUGUI scoreText;
@@ -89,7 +91,6 @@ namespace Rebus.UI
             CreateVictoryPanel();
             CreateTurnBanner();
 
-            // Start hidden
             solvePanel.SetActive(false);
             gameOverPanel.SetActive(false);
             victoryPanel.SetActive(false);
@@ -126,7 +127,7 @@ namespace Rebus.UI
         }
 
         // ------------------------------------------------------------------
-        // Top Bar
+        // Top Bar - frosted glass style
         // ------------------------------------------------------------------
 
         private void CreateTopBar()
@@ -140,10 +141,22 @@ namespace Rebus.UI
             topRect.anchoredPosition = Vector2.zero;
 
             Image topBg = topBar.GetComponent<Image>();
-            topBg.color = darkBlueColor;
+            topBg.color = new Color(surfaceDark.r, surfaceDark.g, surfaceDark.b, 0.92f);
+
+            // Bottom accent line
+            GameObject accentLine = new GameObject("AccentLine");
+            accentLine.transform.SetParent(topBar.transform, false);
+            RectTransform lineRect = accentLine.AddComponent<RectTransform>();
+            lineRect.anchorMin = new Vector2(0, 0);
+            lineRect.anchorMax = new Vector2(1, 0);
+            lineRect.pivot = new Vector2(0.5f, 0);
+            lineRect.sizeDelta = new Vector2(0, 2);
+            lineRect.anchoredPosition = Vector2.zero;
+            Image lineImg = accentLine.AddComponent<Image>();
+            lineImg.color = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.4f);
 
             HorizontalLayoutGroup layout = topBar.AddComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(30, 30, 10, 10);
+            layout.padding = new RectOffset(30, 30, 10, 14);
             layout.spacing = 20;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = true;
@@ -151,51 +164,55 @@ namespace Rebus.UI
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
-            scoreText = CreateTextElement("ScoreText", topBar.transform, "Matches: 0/15", 36, goldColor);
-            attemptsText = CreateTextElement("AttemptsText", topBar.transform, "Attempts: 0", 36, whiteColor);
-            timerText = CreateTextElement("TimerText", topBar.transform, "0:00", 36, whiteColor);
+            scoreText = CreateTextElement("ScoreText", topBar.transform, "Matches: 0/15", 34, accentCyan);
+            attemptsText = CreateTextElement("AttemptsText", topBar.transform, "Attempts: 0", 34, textPrimary);
+            timerText = CreateTextElement("TimerText", topBar.transform, "0:00", 34, accentGold);
         }
 
         // ------------------------------------------------------------------
-        // Solve Puzzle Button (always visible at bottom during gameplay)
+        // Solve Puzzle Button - gradient accent style
         // ------------------------------------------------------------------
 
         private void CreateSolvePuzzleButton()
         {
-            GameObject btnObj = CreateButtonObject("SolvePuzzleButton", mainCanvas.transform,
-                "SOLVE PUZZLE", 48, goldColor, darkBlueColor);
+            GameObject btnObj = CreateModernButton("SolvePuzzleButton", mainCanvas.transform,
+                "SOLVE PUZZLE", 44, accentCyan, surfaceDark);
 
             RectTransform btnRect = btnObj.GetComponent<RectTransform>();
-            btnRect.anchorMin = new Vector2(0.1f, 0);
-            btnRect.anchorMax = new Vector2(0.9f, 0);
+            btnRect.anchorMin = new Vector2(0.12f, 0);
+            btnRect.anchorMax = new Vector2(0.88f, 0);
             btnRect.pivot = new Vector2(0.5f, 0);
-            btnRect.sizeDelta = new Vector2(0, 120);
-            btnRect.anchoredPosition = new Vector2(0, 40);
+            btnRect.sizeDelta = new Vector2(0, 110);
+            btnRect.anchoredPosition = new Vector2(0, 45);
 
             solvePuzzleButton = btnObj.GetComponent<Button>();
             solvePuzzleButton.onClick.AddListener(() => OnSolvePuzzleClicked?.Invoke());
         }
 
         // ------------------------------------------------------------------
-        // Solve Input Panel (overlay)
+        // Solve Input Panel
         // ------------------------------------------------------------------
 
         private void CreateSolvePanel()
         {
-            // Full-screen dimmed overlay
             solvePanel = CreatePanel("SolvePanel", mainCanvas.transform);
             RectTransform overlayRect = solvePanel.GetComponent<RectTransform>();
             SetFullStretch(overlayRect);
-            solvePanel.GetComponent<Image>().color = new Color(0, 0, 0, 0.7f);
+            solvePanel.GetComponent<Image>().color = overlayColor;
 
-            // Center card
+            // Card
             GameObject card = CreatePanel("SolveCard", solvePanel.transform);
             RectTransform cardRect = card.GetComponent<RectTransform>();
             cardRect.anchorMin = new Vector2(0.05f, 0.25f);
             cardRect.anchorMax = new Vector2(0.95f, 0.75f);
             cardRect.offsetMin = Vector2.zero;
             cardRect.offsetMax = Vector2.zero;
-            card.GetComponent<Image>().color = darkBlueColor;
+            card.GetComponent<Image>().color = surfaceMid;
+
+            // Card border
+            Outline cardOutline = card.AddComponent<Outline>();
+            cardOutline.effectColor = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.2f);
+            cardOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
             VerticalLayoutGroup vLayout = card.AddComponent<VerticalLayoutGroup>();
             vLayout.padding = new RectOffset(40, 40, 40, 40);
@@ -206,21 +223,23 @@ namespace Rebus.UI
             vLayout.childForceExpandWidth = true;
             vLayout.childForceExpandHeight = false;
 
-            // Title
             TextMeshProUGUI solveTitle = CreateTextElement("SolveTitle", card.transform,
-                "SOLVE THE PUZZLE", 48, goldColor);
+                "SOLVE THE PUZZLE", 48, accentCyan);
             LayoutElement titleLE = solveTitle.gameObject.AddComponent<LayoutElement>();
             titleLE.preferredHeight = 80;
 
-            // Input field
+            // Input field with dark bg
             GameObject inputObj = new GameObject("SolveInput");
             inputObj.transform.SetParent(card.transform, false);
             Image inputBg = inputObj.AddComponent<Image>();
-            inputBg.color = whiteColor;
+            inputBg.color = surfaceDark;
+
+            Outline inputOutline = inputObj.AddComponent<Outline>();
+            inputOutline.effectColor = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.3f);
+            inputOutline.effectDistance = new Vector2(1, -1);
 
             solveInputField = inputObj.AddComponent<TMP_InputField>();
 
-            // Input text area
             RectTransform inputRect = inputObj.GetComponent<RectTransform>();
             inputRect.sizeDelta = new Vector2(0, 100);
 
@@ -232,23 +251,21 @@ namespace Rebus.UI
             textAreaRect.offsetMax = new Vector2(-20, -5);
             textArea.AddComponent<RectMask2D>();
 
-            // Placeholder
             GameObject placeholderObj = new GameObject("Placeholder");
             placeholderObj.transform.SetParent(textArea.transform, false);
             TextMeshProUGUI placeholder = placeholderObj.AddComponent<TextMeshProUGUI>();
             placeholder.text = "Type your answer...";
             placeholder.fontSize = 36;
-            placeholder.color = new Color(0.5f, 0.5f, 0.5f, 0.7f);
+            placeholder.color = textSecondary;
             placeholder.alignment = TextAlignmentOptions.MidlineLeft;
             RectTransform phRect = placeholderObj.GetComponent<RectTransform>();
             SetFullStretch(phRect);
 
-            // Input text
             GameObject inputTextObj = new GameObject("Text");
             inputTextObj.transform.SetParent(textArea.transform, false);
             TextMeshProUGUI inputText = inputTextObj.AddComponent<TextMeshProUGUI>();
             inputText.fontSize = 36;
-            inputText.color = Color.black;
+            inputText.color = textPrimary;
             inputText.alignment = TextAlignmentOptions.MidlineLeft;
             RectTransform itRect = inputTextObj.GetComponent<RectTransform>();
             SetFullStretch(itRect);
@@ -259,6 +276,10 @@ namespace Rebus.UI
             solveInputField.characterLimit = 100;
             solveInputField.contentType = TMP_InputField.ContentType.Standard;
 
+            // Custom caret color
+            solveInputField.caretColor = accentCyan;
+            solveInputField.selectionColor = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.3f);
+
             LayoutElement inputLE = inputObj.AddComponent<LayoutElement>();
             inputLE.preferredHeight = 100;
 
@@ -268,7 +289,7 @@ namespace Rebus.UI
             RectTransform rowRect = buttonRow.AddComponent<RectTransform>();
             rowRect.sizeDelta = new Vector2(0, 110);
             HorizontalLayoutGroup hLayout = buttonRow.AddComponent<HorizontalLayoutGroup>();
-            hLayout.spacing = 30;
+            hLayout.spacing = 20;
             hLayout.childAlignment = TextAnchor.MiddleCenter;
             hLayout.childControlWidth = true;
             hLayout.childControlHeight = true;
@@ -278,9 +299,8 @@ namespace Rebus.UI
             LayoutElement rowLE = buttonRow.AddComponent<LayoutElement>();
             rowLE.preferredHeight = 110;
 
-            // Cancel button
-            GameObject cancelObj = CreateButtonObject("CancelBtn", buttonRow.transform,
-                "CANCEL", 36, new Color(0.8f, 0.2f, 0.2f), whiteColor);
+            GameObject cancelObj = CreateModernButton("CancelBtn", buttonRow.transform,
+                "CANCEL", 36, dangerRed, textPrimary);
             cancelButton = cancelObj.GetComponent<Button>();
             cancelButton.onClick.AddListener(() =>
             {
@@ -288,17 +308,14 @@ namespace Rebus.UI
                 HideSolvePanel();
             });
 
-            // Submit button
-            GameObject submitObj = CreateButtonObject("SubmitBtn", buttonRow.transform,
-                "SUBMIT", 36, new Color(0.2f, 0.7f, 0.2f), whiteColor);
+            GameObject submitObj = CreateModernButton("SubmitBtn", buttonRow.transform,
+                "SUBMIT", 36, successGreen, surfaceDark);
             submitButton = submitObj.GetComponent<Button>();
             submitButton.onClick.AddListener(() =>
             {
                 string guess = solveInputField.text.Trim();
                 if (!string.IsNullOrEmpty(guess))
-                {
                     OnSolveSubmitted?.Invoke(guess);
-                }
             });
         }
 
@@ -311,7 +328,7 @@ namespace Rebus.UI
             gameOverPanel = CreatePanel("GameOverPanel", mainCanvas.transform);
             RectTransform overlayRect = gameOverPanel.GetComponent<RectTransform>();
             SetFullStretch(overlayRect);
-            gameOverPanel.GetComponent<Image>().color = new Color(0, 0, 0, 0.8f);
+            gameOverPanel.GetComponent<Image>().color = overlayColor;
 
             GameObject card = CreatePanel("GameOverCard", gameOverPanel.transform);
             RectTransform cardRect = card.GetComponent<RectTransform>();
@@ -319,7 +336,11 @@ namespace Rebus.UI
             cardRect.anchorMax = new Vector2(0.9f, 0.75f);
             cardRect.offsetMin = Vector2.zero;
             cardRect.offsetMax = Vector2.zero;
-            card.GetComponent<Image>().color = darkBlueColor;
+            card.GetComponent<Image>().color = surfaceMid;
+
+            Outline cardOutline = card.AddComponent<Outline>();
+            cardOutline.effectColor = new Color(dangerRed.r, dangerRed.g, dangerRed.b, 0.3f);
+            cardOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
             VerticalLayoutGroup vLayout = card.AddComponent<VerticalLayoutGroup>();
             vLayout.padding = new RectOffset(40, 40, 50, 50);
@@ -331,31 +352,29 @@ namespace Rebus.UI
             vLayout.childForceExpandHeight = false;
 
             TextMeshProUGUI title = CreateTextElement("GameOverTitle", card.transform,
-                "GAME OVER", 64, goldColor);
+                "GAME OVER", 64, dangerRed);
             LayoutElement titleLE = title.gameObject.AddComponent<LayoutElement>();
             titleLE.preferredHeight = 100;
 
             gameOverScoreText = CreateTextElement("GameOverScore", card.transform,
-                "Score: 0", 42, whiteColor);
+                "Score: 0", 42, textPrimary);
             LayoutElement scoreLE = gameOverScoreText.gameObject.AddComponent<LayoutElement>();
             scoreLE.preferredHeight = 60;
 
             gameOverTimeText = CreateTextElement("GameOverTime", card.transform,
-                "Time: 0:00", 42, whiteColor);
+                "Time: 0:00", 42, textSecondary);
             LayoutElement timeLE = gameOverTimeText.gameObject.AddComponent<LayoutElement>();
             timeLE.preferredHeight = 60;
 
-            // Play Again
-            GameObject playAgainObj = CreateButtonObject("PlayAgainBtn", card.transform,
-                "PLAY AGAIN", 42, goldColor, darkBlueColor);
+            GameObject playAgainObj = CreateModernButton("PlayAgainBtn", card.transform,
+                "PLAY AGAIN", 42, accentCyan, surfaceDark);
             playAgainButton = playAgainObj.GetComponent<Button>();
             playAgainButton.onClick.AddListener(() => OnPlayAgainClicked?.Invoke());
             LayoutElement paLE = playAgainObj.AddComponent<LayoutElement>();
             paLE.preferredHeight = 110;
 
-            // Main Menu
-            GameObject menuObj = CreateButtonObject("MainMenuBtn", card.transform,
-                "MAIN MENU", 42, whiteColor, darkBlueColor);
+            GameObject menuObj = CreateModernButton("MainMenuBtn", card.transform,
+                "MAIN MENU", 42, surfaceLight, textPrimary);
             mainMenuButton = menuObj.GetComponent<Button>();
             mainMenuButton.onClick.AddListener(() => OnMainMenuClicked?.Invoke());
             LayoutElement mmLE = menuObj.AddComponent<LayoutElement>();
@@ -371,7 +390,7 @@ namespace Rebus.UI
             victoryPanel = CreatePanel("VictoryPanel", mainCanvas.transform);
             RectTransform overlayRect = victoryPanel.GetComponent<RectTransform>();
             SetFullStretch(overlayRect);
-            victoryPanel.GetComponent<Image>().color = new Color(0, 0, 0, 0.8f);
+            victoryPanel.GetComponent<Image>().color = overlayColor;
 
             GameObject card = CreatePanel("VictoryCard", victoryPanel.transform);
             RectTransform cardRect = card.GetComponent<RectTransform>();
@@ -379,7 +398,11 @@ namespace Rebus.UI
             cardRect.anchorMax = new Vector2(0.95f, 0.85f);
             cardRect.offsetMin = Vector2.zero;
             cardRect.offsetMax = Vector2.zero;
-            card.GetComponent<Image>().color = darkBlueColor;
+            card.GetComponent<Image>().color = surfaceMid;
+
+            Outline cardOutline = card.AddComponent<Outline>();
+            cardOutline.effectColor = new Color(accentGold.r, accentGold.g, accentGold.b, 0.3f);
+            cardOutline.effectDistance = new Vector2(2f, -2f);
 
             VerticalLayoutGroup vLayout = card.AddComponent<VerticalLayoutGroup>();
             vLayout.padding = new RectOffset(40, 40, 50, 50);
@@ -390,40 +413,37 @@ namespace Rebus.UI
             vLayout.childForceExpandWidth = true;
             vLayout.childForceExpandHeight = false;
 
-            // Confetti particle system
             CreateConfettiEffect(victoryPanel.transform);
 
             victoryTitleText = CreateTextElement("VictoryTitle", card.transform,
-                "CONGRATULATIONS!", 64, goldColor);
+                "CONGRATULATIONS!", 60, accentGold);
             LayoutElement titleLE = victoryTitleText.gameObject.AddComponent<LayoutElement>();
             titleLE.preferredHeight = 100;
 
             TextMeshProUGUI answerLabel = CreateTextElement("AnswerLabel", card.transform,
-                "The answer was:", 36, whiteColor);
+                "The answer was:", 34, textSecondary);
             LayoutElement alLE = answerLabel.gameObject.AddComponent<LayoutElement>();
             alLE.preferredHeight = 50;
 
             victoryAnswerText = CreateTextElement("VictoryAnswer", card.transform,
-                "", 52, goldColor);
+                "", 52, accentCyan);
             LayoutElement vaLE = victoryAnswerText.gameObject.AddComponent<LayoutElement>();
             vaLE.preferredHeight = 80;
 
             victoryStatsText = CreateTextElement("VictoryStats", card.transform,
-                "", 36, whiteColor);
+                "", 34, textPrimary);
             LayoutElement vsLE = victoryStatsText.gameObject.AddComponent<LayoutElement>();
             vsLE.preferredHeight = 120;
 
-            // Play Again
-            GameObject playAgainObj = CreateButtonObject("VictoryPlayAgainBtn", card.transform,
-                "PLAY AGAIN", 42, goldColor, darkBlueColor);
+            GameObject playAgainObj = CreateModernButton("VictoryPlayAgainBtn", card.transform,
+                "PLAY AGAIN", 42, accentCyan, surfaceDark);
             victoryPlayAgainButton = playAgainObj.GetComponent<Button>();
             victoryPlayAgainButton.onClick.AddListener(() => OnPlayAgainClicked?.Invoke());
             LayoutElement paLE = playAgainObj.AddComponent<LayoutElement>();
             paLE.preferredHeight = 110;
 
-            // Main Menu
-            GameObject menuObj = CreateButtonObject("VictoryMainMenuBtn", card.transform,
-                "MAIN MENU", 42, whiteColor, darkBlueColor);
+            GameObject menuObj = CreateModernButton("VictoryMainMenuBtn", card.transform,
+                "MAIN MENU", 42, surfaceLight, textPrimary);
             victoryMainMenuButton = menuObj.GetComponent<Button>();
             victoryMainMenuButton.onClick.AddListener(() => OnMainMenuClicked?.Invoke());
             LayoutElement mmLE = menuObj.AddComponent<LayoutElement>();
@@ -447,7 +467,7 @@ namespace Rebus.UI
             main.startLifetime = 3f;
             main.startSpeed = new ParticleSystem.MinMaxCurve(200f, 400f);
             main.startSize = new ParticleSystem.MinMaxCurve(10f, 25f);
-            main.startColor = new ParticleSystem.MinMaxGradient(goldColor, whiteColor);
+            main.startColor = new ParticleSystem.MinMaxGradient(accentCyan, accentGold);
             main.gravityModifier = 0.5f;
             main.maxParticles = 200;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -464,9 +484,9 @@ namespace Rebus.UI
             Gradient gradient = new Gradient();
             gradient.SetKeys(
                 new GradientColorKey[] {
-                    new GradientColorKey(goldColor, 0f),
-                    new GradientColorKey(whiteColor, 0.5f),
-                    new GradientColorKey(goldColor, 1f)
+                    new GradientColorKey(accentCyan, 0f),
+                    new GradientColorKey(accentGold, 0.5f),
+                    new GradientColorKey(accentCyan, 1f)
                 },
                 new GradientAlphaKey[] {
                     new GradientAlphaKey(1f, 0f),
@@ -493,14 +513,19 @@ namespace Rebus.UI
             bannerRect.anchorMin = new Vector2(0, 1);
             bannerRect.anchorMax = new Vector2(1, 1);
             bannerRect.pivot = new Vector2(0.5f, 1);
-            bannerRect.sizeDelta = new Vector2(0, 70);
-            bannerRect.anchoredPosition = new Vector2(0, -120); // Below top bar
+            bannerRect.sizeDelta = new Vector2(0, 60);
+            bannerRect.anchoredPosition = new Vector2(0, -120);
 
             turnBannerBg = turnBanner.GetComponent<Image>();
             turnBannerBg.color = GameConfig.PLAYER1_COLOR;
 
+            // Subtle shadow under banner
+            Shadow bannerShadow = turnBanner.AddComponent<Shadow>();
+            bannerShadow.effectColor = new Color(0, 0, 0, 0.4f);
+            bannerShadow.effectDistance = new Vector2(0, -3);
+
             turnText = CreateTextElement("TurnText", turnBanner.transform,
-                "PLAYER 1'S TURN", 32, Color.white);
+                "PLAYER 1'S TURN", 30, Color.white);
             RectTransform turnTextRect = turnText.GetComponent<RectTransform>();
             SetFullStretch(turnTextRect);
         }
@@ -516,7 +541,6 @@ namespace Rebus.UI
 
             if (mode == GameMode.TwoPlayer)
             {
-                // In 2P mode, show per-player stats in the top bar
                 if (scoreText != null)
                     scoreText.text = "P1: 0  P2: 0";
                 if (attemptsText != null)
@@ -535,7 +559,7 @@ namespace Rebus.UI
 
         public void UpdateScore(int matches, int attempts)
         {
-            if (currentMode == GameMode.TwoPlayer) return; // Use overload below
+            if (currentMode == GameMode.TwoPlayer) return;
             if (scoreText != null)
                 scoreText.text = $"Matches: {matches}/15";
             if (attemptsText != null)
@@ -557,9 +581,6 @@ namespace Rebus.UI
             }
         }
 
-        /// <summary>
-        /// Shows the solve puzzle input overlay.
-        /// </summary>
         public void ShowSolvePanel()
         {
             solvePanel.SetActive(true);
@@ -567,17 +588,11 @@ namespace Rebus.UI
             solveInputField.ActivateInputField();
         }
 
-        /// <summary>
-        /// Hides the solve puzzle input overlay.
-        /// </summary>
         public void HideSolvePanel()
         {
             solvePanel.SetActive(false);
         }
 
-        /// <summary>
-        /// Shows the victory panel with stats and confetti.
-        /// </summary>
         public void ShowVictory(string answer, int matches, int attempts, float time)
         {
             StopTimer();
@@ -587,9 +602,7 @@ namespace Rebus.UI
             victoryStatsText.text = $"Matches: {matches}/15\nAttempts: {attempts}\nTime: {FormatTime(time)}";
 
             if (confettiParticles != null)
-            {
                 confettiParticles.Play();
-            }
         }
 
         public void ShowVictory2P(string answer, int solvingPlayer, int[] playerMatches, int[] playerAttempts, float time)
@@ -613,9 +626,6 @@ namespace Rebus.UI
                 confettiParticles.Play();
         }
 
-        /// <summary>
-        /// Shows the game over panel with final stats.
-        /// </summary>
         public void ShowGameOver()
         {
             StopTimer();
@@ -625,34 +635,22 @@ namespace Rebus.UI
             gameOverTimeText.text = $"Time: {timerText.text}";
         }
 
-        /// <summary>
-        /// Starts the gameplay timer from zero.
-        /// </summary>
         public void StartTimer()
         {
             elapsedTime = 0f;
             timerRunning = true;
         }
 
-        /// <summary>
-        /// Stops the gameplay timer.
-        /// </summary>
         public void StopTimer()
         {
             timerRunning = false;
         }
 
-        /// <summary>
-        /// Returns the elapsed time in seconds.
-        /// </summary>
         public float GetElapsedTime()
         {
             return elapsedTime;
         }
 
-        /// <summary>
-        /// Resets all UI to initial gameplay state.
-        /// </summary>
         public void ResetUI()
         {
             scoreText.text = "Matches: 0/15";
@@ -666,7 +664,7 @@ namespace Rebus.UI
             timerRunning = false;
             UpdateTimerDisplay();
             victoryTitleText.text = "CONGRATULATIONS!";
-            victoryTitleText.color = goldColor;
+            victoryTitleText.color = accentGold;
 
             if (confettiParticles != null)
             {
@@ -696,7 +694,7 @@ namespace Rebus.UI
         {
             GameObject panel = new GameObject(name);
             panel.transform.SetParent(parent, false);
-            RectTransform rect = panel.AddComponent<RectTransform>();
+            panel.AddComponent<RectTransform>();
             panel.AddComponent<Image>();
             return panel;
         }
@@ -718,29 +716,41 @@ namespace Rebus.UI
             return tmp;
         }
 
-        private GameObject CreateButtonObject(string name, Transform parent,
+        /// <summary>
+        /// Creates a modern-styled button with outline glow and shadow.
+        /// </summary>
+        private GameObject CreateModernButton(string name, Transform parent,
             string label, float fontSize, Color bgColor, Color textColor)
         {
             GameObject btnObj = new GameObject(name);
             btnObj.transform.SetParent(parent, false);
             RectTransform btnRect = btnObj.AddComponent<RectTransform>();
-            btnRect.sizeDelta = new Vector2(0, 110); // Minimum 100px touch target
+            btnRect.sizeDelta = new Vector2(0, 110);
 
             Image btnImage = btnObj.AddComponent<Image>();
             btnImage.color = bgColor;
 
+            // Glow outline
+            Outline outline = btnObj.AddComponent<Outline>();
+            outline.effectColor = new Color(bgColor.r, bgColor.g, bgColor.b, 0.35f);
+            outline.effectDistance = new Vector2(2, -2);
+
+            // Drop shadow
+            Shadow shadow = btnObj.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.4f);
+            shadow.effectDistance = new Vector2(2, -3);
+
             Button btn = btnObj.AddComponent<Button>();
             ColorBlock colors = btn.colors;
             colors.normalColor = bgColor;
-            colors.highlightedColor = bgColor * 1.1f;
-            colors.pressedColor = bgColor * 0.8f;
+            colors.highlightedColor = Color.Lerp(bgColor, Color.white, 0.15f);
+            colors.pressedColor = Color.Lerp(bgColor, Color.black, 0.2f);
             colors.selectedColor = bgColor;
             btn.colors = colors;
             btn.targetGraphic = btnImage;
 
             TextMeshProUGUI btnText = CreateTextElement(name + "Text", btnObj.transform,
                 label, fontSize, textColor);
-
             RectTransform textRect = btnText.GetComponent<RectTransform>();
             SetFullStretch(textRect);
 

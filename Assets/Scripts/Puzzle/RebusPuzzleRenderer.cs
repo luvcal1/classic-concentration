@@ -16,8 +16,8 @@ namespace Rebus.Puzzle
         private List<CanvasGroup> elementGroups = new List<CanvasGroup>();
         private HashSet<int> revealedIndices = new HashSet<int>();
 
-        // Cover overlay that hides unrevealed portions
-        private Image coverImage;
+        private static readonly Color BG_COLOR = new Color(0.04f, 0.04f, 0.10f, 0.95f);
+        private static readonly Color BORDER_COLOR = new Color(0f, 0.9f, 1f, 0.3f);
 
         private void Awake()
         {
@@ -33,15 +33,25 @@ namespace Rebus.Puzzle
         {
             container = puzzleContainer;
 
-            // Add a background
             Image bg = container.gameObject.GetComponent<Image>();
             if (bg == null) bg = container.gameObject.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.15f, 0.9f);
+            bg.color = BG_COLOR;
 
-            // Add border
+            // Subtle cyan border glow
             Outline outline = container.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(1f, 0.84f, 0f, 0.5f);
-            outline.effectDistance = new Vector2(3, 3);
+            outline.effectColor = BORDER_COLOR;
+            outline.effectDistance = new Vector2(2, 2);
+
+            // Inner highlight at top
+            GameObject innerHL = new GameObject("InnerHighlight");
+            innerHL.transform.SetParent(container, false);
+            RectTransform hlRect = innerHL.AddComponent<RectTransform>();
+            hlRect.anchorMin = new Vector2(0, 0.85f);
+            hlRect.anchorMax = new Vector2(1, 1);
+            hlRect.offsetMin = Vector2.zero;
+            hlRect.offsetMax = Vector2.zero;
+            Image hlImg = innerHL.AddComponent<Image>();
+            hlImg.color = new Color(0.1f, 0.15f, 0.3f, 0.3f);
         }
 
         public void LoadPuzzle(RebusPuzzle puzzle)
@@ -81,7 +91,7 @@ namespace Rebus.Puzzle
                 tmp.fontStyle = style;
 
                 CanvasGroup cg = obj.AddComponent<CanvasGroup>();
-                cg.alpha = 0f; // Start hidden
+                cg.alpha = 0f;
 
                 elementTexts.Add(tmp);
                 elementGroups.Add(cg);
@@ -101,7 +111,7 @@ namespace Rebus.Puzzle
                 if (!revealedIndices.Contains(idx) && idx < elementGroups.Count)
                 {
                     revealedIndices.Add(idx);
-                    StartCoroutine(FadeInElement(elementGroups[idx]));
+                    StartCoroutine(FadeInElement(elementGroups[idx], elementTexts[idx]));
                 }
             }
         }
@@ -113,24 +123,32 @@ namespace Rebus.Puzzle
                 if (!revealedIndices.Contains(i))
                 {
                     revealedIndices.Add(i);
-                    StartCoroutine(FadeInElement(elementGroups[i]));
+                    StartCoroutine(FadeInElement(elementGroups[i], elementTexts[i]));
                 }
             }
         }
 
-        private IEnumerator FadeInElement(CanvasGroup cg)
+        private IEnumerator FadeInElement(CanvasGroup cg, TextMeshProUGUI text)
         {
-            float duration = 0.5f;
+            float duration = 0.6f;
             float elapsed = 0f;
+
+            // Scale up from small
+            RectTransform rect = cg.GetComponent<RectTransform>();
+            Vector3 targetScale = rect.localScale;
+            rect.localScale = targetScale * 0.5f;
 
             while (elapsed < duration)
             {
                 float t = elapsed / duration;
-                cg.alpha = Mathf.SmoothStep(0f, 1f, t);
+                float ease = 1f - (1f - t) * (1f - t); // ease-out quad
+                cg.alpha = ease;
+                rect.localScale = Vector3.Lerp(targetScale * 0.5f, targetScale, ease);
                 elapsed += Time.deltaTime;
                 yield return null;
             }
             cg.alpha = 1f;
+            rect.localScale = targetScale;
         }
 
         public string GetCurrentAnswer()

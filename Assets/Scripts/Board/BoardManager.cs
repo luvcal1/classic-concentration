@@ -34,10 +34,8 @@ namespace Rebus.Board
 
         private void CreatePanels()
         {
-            // Get 15 random prizes for 15 pairs
             List<PrizeData.Prize> prizes = PrizeData.GetRandomPrizes(GameConfig.TOTAL_PAIRS);
 
-            // Create prize assignments: 2 of each prize
             List<PrizeData.Prize> assignments = new List<PrizeData.Prize>();
             foreach (var prize in prizes)
             {
@@ -45,7 +43,7 @@ namespace Rebus.Board
                 assignments.Add(prize);
             }
 
-            // Shuffle assignments
+            // Fisher-Yates shuffle
             for (int i = assignments.Count - 1; i > 0; i--)
             {
                 int j = UnityEngine.Random.Range(0, i + 1);
@@ -86,6 +84,7 @@ namespace Rebus.Board
                     rect.anchoredPosition = new Vector2(x, y);
 
                     Image img = panelObj.AddComponent<Image>();
+                    img.color = Color.clear;
 
                     Panel panel = panelObj.AddComponent<Panel>();
                     panel.Initialize(
@@ -95,6 +94,10 @@ namespace Rebus.Board
                         assignments[idx].Color
                     );
                     panel.OnClicked += HandlePanelClicked;
+
+                    // Staggered entrance animation
+                    float delay = (row * GameConfig.BOARD_COLS + col) * 0.03f;
+                    panel.PlayEntranceAnimation(delay);
 
                     panels[idx] = panel;
                     panelNumber++;

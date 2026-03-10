@@ -7,22 +7,23 @@ using Rebus.Core;
 
 namespace Rebus.UI
 {
-    /// <summary>
-    /// Main menu screen with title, play button, how-to-play overlay,
-    /// and a subtle animated background.
-    /// </summary>
     public class MainMenuUI : MonoBehaviour
     {
-        private readonly Color goldColor = new Color(1f, 0.843f, 0f);
-        private readonly Color darkBlueColor = new Color(0.102f, 0.137f, 0.494f);
-        private readonly Color darkBlueLighter = new Color(0.15f, 0.2f, 0.55f);
+        // Modern palette
+        private readonly Color accentCyan = new Color(0f, 0.9f, 1f);
+        private readonly Color accentGold = new Color(1f, 0.75f, 0.2f);
+        private readonly Color surfaceDark = new Color(0.06f, 0.06f, 0.12f);
+        private readonly Color surfaceMid = new Color(0.12f, 0.13f, 0.22f);
+        private readonly Color surfaceLight = new Color(0.18f, 0.2f, 0.32f);
+        private readonly Color textPrimary = new Color(0.94f, 0.96f, 0.98f);
+        private readonly Color textSecondary = new Color(0.55f, 0.58f, 0.65f);
 
         [SerializeField] private string gameSceneName = "GameScene";
 
         private Canvas canvas;
         private GameObject howToPlayPanel;
 
-        // Animated background panels
+        // Animated background
         private RectTransform[] bgPanels;
         private float[] panelFlipTimers;
 
@@ -58,10 +59,21 @@ namespace Rebus.UI
             RectTransform bgRect = bg.AddComponent<RectTransform>();
             StretchFull(bgRect);
             Image bgImg = bg.AddComponent<Image>();
-            bgImg.color = darkBlueColor;
+            bgImg.color = surfaceDark;
 
-            // Animated background panels (subtle grid)
+            // Animated background grid
             CreateAnimatedBackground(canvasObj.transform);
+
+            // Ambient glow overlay (center radial feel)
+            GameObject glow = new GameObject("AmbientGlow");
+            glow.transform.SetParent(canvasObj.transform, false);
+            RectTransform glowRect = glow.AddComponent<RectTransform>();
+            glowRect.anchorMin = new Vector2(0, 0.2f);
+            glowRect.anchorMax = new Vector2(1, 0.8f);
+            glowRect.offsetMin = Vector2.zero;
+            glowRect.offsetMax = Vector2.zero;
+            Image glowImg = glow.AddComponent<Image>();
+            glowImg.color = new Color(0f, 0.15f, 0.25f, 0.2f);
 
             // Content container
             GameObject content = new GameObject("Content");
@@ -71,57 +83,48 @@ namespace Rebus.UI
 
             VerticalLayoutGroup vLayout = content.AddComponent<VerticalLayoutGroup>();
             vLayout.padding = new RectOffset(60, 60, 200, 200);
-            vLayout.spacing = 30;
+            vLayout.spacing = 20;
             vLayout.childAlignment = TextAnchor.MiddleCenter;
             vLayout.childControlWidth = true;
             vLayout.childControlHeight = false;
             vLayout.childForceExpandWidth = true;
             vLayout.childForceExpandHeight = false;
 
-            // Title
+            // Title with cyan accent
             TextMeshProUGUI title = CreateText("Title", content.transform,
-                "CLASSIC\nCONCENTRATION", 80, goldColor);
+                "CLASSIC\nCONCENTRATION", 80, accentCyan);
             title.fontStyle = FontStyles.Bold;
             LayoutElement titleLE = title.gameObject.AddComponent<LayoutElement>();
             titleLE.preferredHeight = 250;
 
             // Subtitle
             TextMeshProUGUI subtitle = CreateText("Subtitle", content.transform,
-                "The Rebus Puzzle Game", 40, Color.white);
+                "The Rebus Puzzle Game", 38, textSecondary);
             subtitle.fontStyle = FontStyles.Italic;
             LayoutElement subLE = subtitle.gameObject.AddComponent<LayoutElement>();
-            subLE.preferredHeight = 80;
+            subLE.preferredHeight = 70;
 
             // Spacer
-            GameObject spacer = new GameObject("Spacer");
-            spacer.transform.SetParent(content.transform, false);
-            spacer.AddComponent<RectTransform>();
-            LayoutElement spacerLE = spacer.AddComponent<LayoutElement>();
-            spacerLE.preferredHeight = 100;
+            AddSpacer(content.transform, 80);
 
-            // Play button (large, gold)
-            Button playBtn = CreateMenuButton("PlayBtn", content.transform,
-                "PLAY", 56, goldColor, darkBlueColor, 140);
+            // Play button - primary action, accent gold
+            Button playBtn = CreateModernMenuButton("PlayBtn", content.transform,
+                "PLAY", 56, accentGold, surfaceDark, 140);
             playBtn.onClick.AddListener(OnPlayClicked);
 
-            // 2 Players button
-            Button twoPlayerBtn = CreateMenuButton("TwoPlayerBtn", content.transform,
-                "2 PLAYERS", 48, GameConfig.PLAYER1_COLOR, Color.white, 120);
+            // 2 Players button - secondary action, accent cyan
+            Button twoPlayerBtn = CreateModernMenuButton("TwoPlayerBtn", content.transform,
+                "2 PLAYERS", 48, accentCyan, surfaceDark, 120);
             twoPlayerBtn.onClick.AddListener(OnTwoPlayerClicked);
 
-            // Spacer
-            GameObject spacer2 = new GameObject("Spacer2");
-            spacer2.transform.SetParent(content.transform, false);
-            spacer2.AddComponent<RectTransform>();
-            LayoutElement spacer2LE = spacer2.AddComponent<LayoutElement>();
-            spacer2LE.preferredHeight = 30;
+            AddSpacer(content.transform, 20);
 
-            // How to Play button
-            Button howToPlayBtn = CreateMenuButton("HowToPlayBtn", content.transform,
-                "HOW TO PLAY", 40, darkBlueLighter, goldColor, 110);
+            // How to Play button - tertiary, subtle
+            Button howToPlayBtn = CreateModernMenuButton("HowToPlayBtn", content.transform,
+                "HOW TO PLAY", 38, surfaceLight, textPrimary, 100);
             howToPlayBtn.onClick.AddListener(OnHowToPlayClicked);
 
-            // How to Play panel (hidden by default)
+            // How to Play panel
             CreateHowToPlayPanel(canvasObj.transform);
         }
 
@@ -136,9 +139,6 @@ namespace Rebus.UI
             int rows = 8;
             bgPanels = new RectTransform[cols * rows];
             panelFlipTimers = new float[cols * rows];
-
-            float panelWidth = 1080f / cols;
-            float panelHeight = 1920f / rows;
 
             for (int r = 0; r < rows; r++)
             {
@@ -156,13 +156,12 @@ namespace Rebus.UI
                     pRect.offsetMax = new Vector2(-2, -2);
 
                     Image img = panel.AddComponent<Image>();
-                    // Subtle variation of dark blue
-                    float variation = Random.Range(-0.02f, 0.02f);
+                    float variation = Random.Range(-0.015f, 0.015f);
                     img.color = new Color(
-                        darkBlueColor.r + variation,
-                        darkBlueColor.g + variation,
-                        darkBlueColor.b + variation + 0.03f,
-                        0.4f
+                        surfaceMid.r + variation,
+                        surfaceMid.g + variation,
+                        surfaceMid.b + variation + 0.02f,
+                        0.3f
                     );
 
                     bgPanels[idx] = pRect;
@@ -178,7 +177,7 @@ namespace Rebus.UI
             RectTransform overlayRect = howToPlayPanel.AddComponent<RectTransform>();
             StretchFull(overlayRect);
             Image overlayImg = howToPlayPanel.AddComponent<Image>();
-            overlayImg.color = new Color(0, 0, 0, 0.85f);
+            overlayImg.color = new Color(0.02f, 0.02f, 0.06f, 0.9f);
 
             // Card
             GameObject card = new GameObject("HTPCard");
@@ -190,7 +189,11 @@ namespace Rebus.UI
             cardRect.offsetMax = Vector2.zero;
 
             Image cardBg = card.AddComponent<Image>();
-            cardBg.color = darkBlueColor;
+            cardBg.color = surfaceMid;
+
+            Outline cardOutline = card.AddComponent<Outline>();
+            cardOutline.effectColor = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.2f);
+            cardOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
             VerticalLayoutGroup vLayout = card.AddComponent<VerticalLayoutGroup>();
             vLayout.padding = new RectOffset(50, 50, 50, 50);
@@ -201,14 +204,12 @@ namespace Rebus.UI
             vLayout.childForceExpandWidth = true;
             vLayout.childForceExpandHeight = false;
 
-            // Title
             TextMeshProUGUI htpTitle = CreateText("HTPTitle", card.transform,
-                "HOW TO PLAY", 56, goldColor);
+                "HOW TO PLAY", 52, accentCyan);
             htpTitle.fontStyle = FontStyles.Bold;
             LayoutElement titleLE = htpTitle.gameObject.AddComponent<LayoutElement>();
             titleLE.preferredHeight = 90;
 
-            // Rules
             string[] rules = new string[]
             {
                 "1. Match pairs of prizes by\n   flipping panels on the board.",
@@ -219,33 +220,37 @@ namespace Rebus.UI
             foreach (string rule in rules)
             {
                 TextMeshProUGUI ruleText = CreateText("Rule", card.transform,
-                    rule, 34, Color.white);
+                    rule, 32, textPrimary);
                 ruleText.alignment = TextAlignmentOptions.MidlineLeft;
                 LayoutElement ruleLE = ruleText.gameObject.AddComponent<LayoutElement>();
                 ruleLE.preferredHeight = 100;
             }
 
-            // Example section
             TextMeshProUGUI exLabel = CreateText("ExampleLabel", card.transform,
-                "Example Rebus:", 36, goldColor);
+                "Example Rebus:", 34, accentGold);
             LayoutElement exLabelLE = exLabel.gameObject.AddComponent<LayoutElement>();
             exLabelLE.preferredHeight = 60;
 
-            // Example rebus illustration
+            // Example box with modern styling
             GameObject exampleBox = new GameObject("ExampleBox");
             exampleBox.transform.SetParent(card.transform, false);
             exampleBox.AddComponent<RectTransform>();
             Image exBg = exampleBox.AddComponent<Image>();
-            exBg.color = new Color(0.05f, 0.05f, 0.15f, 0.8f);
+            exBg.color = surfaceDark;
+
+            Outline exOutline = exampleBox.AddComponent<Outline>();
+            exOutline.effectColor = new Color(accentGold.r, accentGold.g, accentGold.b, 0.2f);
+            exOutline.effectDistance = new Vector2(1, -1);
+
             LayoutElement exBoxLE = exampleBox.AddComponent<LayoutElement>();
             exBoxLE.preferredHeight = 120;
 
             TextMeshProUGUI exText = CreateText("ExampleRebus", exampleBox.transform,
-                "EZ  +  [image of pie]\n= EASY AS PIE", 32, goldColor);
+                "EZ  +  [image of pie]\n= EASY AS PIE", 30, accentGold);
             RectTransform exTextRect = exText.GetComponent<RectTransform>();
             StretchFull(exTextRect);
 
-            // Spacer
+            // Flexible spacer
             GameObject spacer = new GameObject("Spacer");
             spacer.transform.SetParent(card.transform, false);
             spacer.AddComponent<RectTransform>();
@@ -253,9 +258,8 @@ namespace Rebus.UI
             spacerLE.preferredHeight = 20;
             spacerLE.flexibleHeight = 1;
 
-            // Close button
-            Button closeBtn = CreateMenuButton("CloseHTPBtn", card.transform,
-                "GOT IT!", 42, goldColor, darkBlueColor, 110);
+            Button closeBtn = CreateModernMenuButton("CloseHTPBtn", card.transform,
+                "GOT IT!", 42, accentCyan, surfaceDark, 110);
             closeBtn.onClick.AddListener(() => howToPlayPanel.SetActive(false));
 
             howToPlayPanel.SetActive(false);
@@ -292,13 +296,13 @@ namespace Rebus.UI
 
             Image img = panel.GetComponent<Image>();
             Color originalColor = img.color;
-            Color flashColor = new Color(goldColor.r, goldColor.g, goldColor.b, 0.15f);
+            // Flash with cyan glow instead of gold
+            Color flashColor = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.12f);
 
             float duration = 0.5f;
             float half = duration * 0.5f;
             float elapsed = 0f;
 
-            // Scale down on X (simulate flip)
             while (elapsed < half)
             {
                 float t = elapsed / half;
@@ -310,7 +314,6 @@ namespace Rebus.UI
 
             img.color = flashColor;
 
-            // Scale back up
             elapsed = 0f;
             while (elapsed < half)
             {
@@ -323,9 +326,8 @@ namespace Rebus.UI
 
             panel.localScale = Vector3.one;
 
-            // Fade back
             elapsed = 0f;
-            float fadeDuration = 1f;
+            float fadeDuration = 1.2f;
             while (elapsed < fadeDuration)
             {
                 img.color = Color.Lerp(flashColor, originalColor, elapsed / fadeDuration);
@@ -378,7 +380,7 @@ namespace Rebus.UI
             return tmp;
         }
 
-        private Button CreateMenuButton(string name, Transform parent,
+        private Button CreateModernMenuButton(string name, Transform parent,
             string label, float fontSize, Color bgColor, Color textColor, float height)
         {
             GameObject btnObj = new GameObject(name);
@@ -388,21 +390,30 @@ namespace Rebus.UI
             Image img = btnObj.AddComponent<Image>();
             img.color = bgColor;
 
+            // Glow outline
+            Outline outline = btnObj.AddComponent<Outline>();
+            outline.effectColor = new Color(bgColor.r, bgColor.g, bgColor.b, 0.3f);
+            outline.effectDistance = new Vector2(2, -2);
+
+            // Drop shadow
+            Shadow shadow = btnObj.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.4f);
+            shadow.effectDistance = new Vector2(2, -3);
+
             Button btn = btnObj.AddComponent<Button>();
             btn.targetGraphic = img;
 
             ColorBlock cb = btn.colors;
             cb.normalColor = bgColor;
-            cb.highlightedColor = bgColor * 1.1f;
-            cb.pressedColor = bgColor * 0.8f;
+            cb.highlightedColor = Color.Lerp(bgColor, Color.white, 0.15f);
+            cb.pressedColor = Color.Lerp(bgColor, Color.black, 0.2f);
             cb.selectedColor = bgColor;
             btn.colors = cb;
 
             LayoutElement le = btnObj.AddComponent<LayoutElement>();
             le.preferredHeight = height;
-            le.minHeight = 100; // Minimum 100px touch target
+            le.minHeight = 100;
 
-            // Label
             GameObject txtObj = new GameObject("Label");
             txtObj.transform.SetParent(btnObj.transform, false);
             RectTransform txtRect = txtObj.AddComponent<RectTransform>();
@@ -416,6 +427,15 @@ namespace Rebus.UI
             txt.fontStyle = FontStyles.Bold;
 
             return btn;
+        }
+
+        private void AddSpacer(Transform parent, float height)
+        {
+            GameObject spacer = new GameObject("Spacer");
+            spacer.transform.SetParent(parent, false);
+            spacer.AddComponent<RectTransform>();
+            LayoutElement le = spacer.AddComponent<LayoutElement>();
+            le.preferredHeight = height;
         }
 
         private void StretchFull(RectTransform rect)
