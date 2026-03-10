@@ -14,12 +14,19 @@ namespace Rebus.Core
         public static GameManager Instance { get; private set; }
 
         public GameState CurrentState { get; private set; }
+        public GameMode Mode { get; private set; }
         public int MatchesFound { get; private set; }
         public int Attempts { get; private set; }
+
+        // Two-player state
+        public int CurrentPlayer { get; private set; } // 0 or 1
+        public int[] PlayerMatches { get; private set; } = new int[2];
+        public int[] PlayerAttempts { get; private set; } = new int[2];
 
         public event Action<GameState> OnStateChanged;
         public event Action<int> OnMatchFound;
         public event Action OnMismatch;
+        public event Action<int> OnTurnChanged; // passes new player index
 
         private Panel firstSelected;
         private Panel secondSelected;
@@ -39,26 +46,29 @@ namespace Rebus.Core
 
         public void StartGame()
         {
+            Mode = GameConfig.SelectedMode;
             MatchesFound = 0;
             Attempts = 0;
+            CurrentPlayer = 0;
+            PlayerMatches[0] = 0;
+            PlayerMatches[1] = 0;
+            PlayerAttempts[0] = 0;
+            PlayerAttempts[1] = 0;
             firstSelected = null;
             secondSelected = null;
             isProcessing = false;
 
-            // Pick a random puzzle
             currentPuzzle = PuzzleDatabase.GetRandomPuzzle();
 
-            // Load puzzle into renderer
             if (RebusPuzzleRenderer.Instance != null)
                 RebusPuzzleRenderer.Instance.LoadPuzzle(currentPuzzle);
 
-            // Setup board
             if (BoardManager.Instance != null)
                 BoardManager.Instance.OnPanelClicked += OnPanelSelected;
 
-            // Setup UI
             if (UIManager.Instance != null)
             {
+                UIManager.Instance.SetGameMode(Mode);
                 UIManager.Instance.ResetUI();
                 UIManager.Instance.StartTimer();
                 UIManager.Instance.OnSolvePuzzleClicked += OnSolvePuzzleClicked;
@@ -66,6 +76,9 @@ namespace Rebus.Core
                 UIManager.Instance.OnSolveCancelled += OnSolveCancelled;
                 UIManager.Instance.OnPlayAgainClicked += OnPlayAgain;
                 UIManager.Instance.OnMainMenuClicked += OnMainMenu;
+
+                if (Mode == GameMode.TwoPlayer)
+                    UIManager.Instance.UpdateTurn(CurrentPlayer);
             }
 
             SetState(GameState.Playing);
@@ -75,6 +88,17 @@ namespace Rebus.Core
         {
             CurrentState = newState;
             OnStateChanged?.Invoke(newState);
+        }
+
+        private void SwitchTurn()
+        {
+            if (Mode != GameMode.TwoPlayer) return;
+
+            CurrentPlayer = 1 - CurrentPlayer;
+            OnTurnChanged?.Invoke(CurrentPlayer);
+
+            if (UIManager.Instance != null)
+                UIManager.Instance.UpdateTurn(CurrentPlayer);
         }
 
         public void OnPanelSelected(Panel panel)
@@ -104,11 +128,12 @@ namespace Rebus.Core
 
             isProcessing = true;
             Attempts++;
+            PlayerAttempts[CurrentPlayer]++;
 
             if (firstSelected.PrizeName == secondSelected.PrizeName)
             {
-                // Match found!
                 MatchesFound++;
+                PlayerMatches[CurrentPlayer]++;
 
                 if (AudioManager.Instance != null)
                     AudioManager.Instance.PlaySound(AudioManager.Sound.Match);
@@ -116,25 +141,25 @@ namespace Rebus.Core
                 OnMatchFound?.Invoke(MatchesFound);
 
                 if (UIManager.Instance != null)
-                    UIManager.Instance.UpdateScore(MatchesFound, Attempts);
+                    UIManager.Instance.UpdateScore(MatchesFound, Attempts, PlayerMatches, PlayerAttempts, CurrentPlayer);
 
                 Panel p1 = firstSelected;
                 Panel p2 = secondSelected;
                 firstSelected = null;
                 secondSelected = null;
 
+                // Match = same player goes again (no turn switch)
                 StartCoroutine(ProcessMatch(p1, p2));
             }
             else
             {
-                // Mismatch
                 if (AudioManager.Instance != null)
                     AudioManager.Instance.PlaySound(AudioManager.Sound.Mismatch);
 
                 OnMismatch?.Invoke();
 
                 if (UIManager.Instance != null)
-                    UIManager.Instance.UpdateScore(MatchesFound, Attempts);
+                    UIManager.Instance.UpdateScore(MatchesFound, Attempts, PlayerMatches, PlayerAttempts, CurrentPlayer);
 
                 StartCoroutine(ProcessMismatch());
             }
@@ -144,11 +169,9 @@ namespace Rebus.Core
         {
             yield return new WaitForSeconds(0.3f);
 
-            // Remove matched panels
             p1.MatchAndRemove();
             p2.MatchAndRemove();
 
-            // Reveal puzzle portion
             if (RebusPuzzleRenderer.Instance != null)
             {
                 RebusPuzzleRenderer.Instance.UpdateVisibility(MatchesFound, GameConfig.TOTAL_PAIRS);
@@ -161,14 +184,11 @@ namespace Rebus.Core
 
             isProcessing = false;
 
-            // Check if all pairs matched
             if (MatchesFound >= GameConfig.TOTAL_PAIRS)
             {
-                // All panels cleared - reveal full puzzle, give player a chance to solve
                 if (RebusPuzzleRenderer.Instance != null)
                     RebusPuzzleRenderer.Instance.RevealAll();
 
-                // Auto-prompt solve
                 yield return new WaitForSeconds(1f);
                 OnSolvePuzzleClicked();
             }
@@ -188,7 +208,11 @@ namespace Rebus.Core
             {
                 flipsRemaining--;
                 if (flipsRemaining <= 0)
+                {
                     isProcessing = false;
+                    // Mismatch = switch turns in 2-player mode
+                    SwitchTurn();
+                }
             };
 
             if (p1 != null && !p1.IsMatched) p1.FlipToFront(onFlipDone);
@@ -198,7 +222,10 @@ namespace Rebus.Core
             else { flipsRemaining--; }
 
             if (flipsRemaining <= 0)
+            {
                 isProcessing = false;
+                SwitchTurn();
+            }
         }
 
         private void OnSolvePuzzleClicked()
@@ -208,12 +235,7 @@ namespace Rebus.Core
             SetState(GameState.PuzzleSolve);
 
             if (UIManager.Instance != null)
-            {
-                string preview = RebusPuzzleRenderer.Instance != null
-                    ? RebusPuzzleRenderer.Instance.GetVisiblePuzzleText()
-                    : "???";
                 UIManager.Instance.ShowSolvePanel();
-            }
         }
 
         private void OnSolveSubmitted(string guess)
@@ -222,7 +244,6 @@ namespace Rebus.Core
 
             if (currentPuzzle.CheckAnswer(guess))
             {
-                // Victory!
                 SetState(GameState.Victory);
 
                 if (AudioManager.Instance != null)
@@ -234,30 +255,47 @@ namespace Rebus.Core
                 if (UIManager.Instance != null)
                 {
                     UIManager.Instance.HideSolvePanel();
-                    UIManager.Instance.ShowVictory(
-                        currentPuzzle.answer,
-                        MatchesFound,
-                        Attempts,
-                        UIManager.Instance.GetElapsedTime()
-                    );
+
+                    if (Mode == GameMode.TwoPlayer)
+                    {
+                        UIManager.Instance.ShowVictory2P(
+                            currentPuzzle.answer,
+                            CurrentPlayer,
+                            PlayerMatches,
+                            PlayerAttempts,
+                            UIManager.Instance.GetElapsedTime()
+                        );
+                    }
+                    else
+                    {
+                        UIManager.Instance.ShowVictory(
+                            currentPuzzle.answer,
+                            MatchesFound,
+                            Attempts,
+                            UIManager.Instance.GetElapsedTime()
+                        );
+                    }
                 }
             }
             else
             {
-                // Wrong answer
                 if (AudioManager.Instance != null)
                     AudioManager.Instance.PlaySound(AudioManager.Sound.WrongAnswer);
 
-                // Stay in solve state, let player try again or cancel
+                // Wrong guess in 2-player: lose your turn
+                if (Mode == GameMode.TwoPlayer)
+                {
+                    UIManager.Instance.HideSolvePanel();
+                    SetState(GameState.Playing);
+                    SwitchTurn();
+                }
             }
         }
 
         private void OnSolveCancelled()
         {
             if (CurrentState == GameState.PuzzleSolve)
-            {
                 SetState(GameState.Playing);
-            }
         }
 
         private void OnPlayAgain()

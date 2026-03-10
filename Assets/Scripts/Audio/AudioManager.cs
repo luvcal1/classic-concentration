@@ -26,7 +26,7 @@ namespace Rebus.Audio
 
         [Header("Settings")]
         [SerializeField] private float masterVolume = 0.6f;
-        [SerializeField] private bool musicEnabled = true;
+        [SerializeField] private bool musicEnabled = false;
 
         private AudioSource sfxSource;
         private AudioSource musicSource;

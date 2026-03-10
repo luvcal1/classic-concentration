@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections;
+using Rebus.Core;
 
 namespace Rebus.UI
 {
@@ -102,6 +103,11 @@ namespace Rebus.UI
             Button playBtn = CreateMenuButton("PlayBtn", content.transform,
                 "PLAY", 56, goldColor, darkBlueColor, 140);
             playBtn.onClick.AddListener(OnPlayClicked);
+
+            // 2 Players button
+            Button twoPlayerBtn = CreateMenuButton("TwoPlayerBtn", content.transform,
+                "2 PLAYERS", 48, GameConfig.PLAYER1_COLOR, Color.white, 120);
+            twoPlayerBtn.onClick.AddListener(OnTwoPlayerClicked);
 
             // Spacer
             GameObject spacer2 = new GameObject("Spacer2");
@@ -336,6 +342,13 @@ namespace Rebus.UI
 
         private void OnPlayClicked()
         {
+            GameConfig.SelectedMode = GameMode.SinglePlayer;
+            SceneManager.LoadScene(gameSceneName);
+        }
+
+        private void OnTwoPlayerClicked()
+        {
+            GameConfig.SelectedMode = GameMode.TwoPlayer;
             SceneManager.LoadScene(gameSceneName);
         }
 

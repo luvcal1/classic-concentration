@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using Rebus.Core;
 
 namespace Rebus.UI
 {
@@ -49,6 +50,14 @@ namespace Rebus.UI
         private Button victoryMainMenuButton;
         private ParticleSystem confettiParticles;
 
+        // --- Turn Indicator (2-player) ---
+        private GameObject turnBanner;
+        private TextMeshProUGUI turnText;
+        private Image turnBannerBg;
+
+        // --- Game Mode ---
+        private GameMode currentMode;
+
         // --- Canvas ---
         private Canvas mainCanvas;
 
@@ -78,11 +87,13 @@ namespace Rebus.UI
             CreateSolvePanel();
             CreateGameOverPanel();
             CreateVictoryPanel();
+            CreateTurnBanner();
 
             // Start hidden
             solvePanel.SetActive(false);
             gameOverPanel.SetActive(false);
             victoryPanel.SetActive(false);
+            turnBanner.SetActive(false);
         }
 
         private void Update()
@@ -472,18 +483,78 @@ namespace Rebus.UI
         }
 
         // ------------------------------------------------------------------
+        // Turn Banner (2-player)
+        // ------------------------------------------------------------------
+
+        private void CreateTurnBanner()
+        {
+            turnBanner = CreatePanel("TurnBanner", mainCanvas.transform);
+            RectTransform bannerRect = turnBanner.GetComponent<RectTransform>();
+            bannerRect.anchorMin = new Vector2(0, 1);
+            bannerRect.anchorMax = new Vector2(1, 1);
+            bannerRect.pivot = new Vector2(0.5f, 1);
+            bannerRect.sizeDelta = new Vector2(0, 70);
+            bannerRect.anchoredPosition = new Vector2(0, -120); // Below top bar
+
+            turnBannerBg = turnBanner.GetComponent<Image>();
+            turnBannerBg.color = GameConfig.PLAYER1_COLOR;
+
+            turnText = CreateTextElement("TurnText", turnBanner.transform,
+                "PLAYER 1'S TURN", 32, Color.white);
+            RectTransform turnTextRect = turnText.GetComponent<RectTransform>();
+            SetFullStretch(turnTextRect);
+        }
+
+        // ------------------------------------------------------------------
         // Public API
         // ------------------------------------------------------------------
 
-        /// <summary>
-        /// Updates the score display in the top bar.
-        /// </summary>
+        public void SetGameMode(GameMode mode)
+        {
+            currentMode = mode;
+            turnBanner.SetActive(mode == GameMode.TwoPlayer);
+
+            if (mode == GameMode.TwoPlayer)
+            {
+                // In 2P mode, show per-player stats in the top bar
+                if (scoreText != null)
+                    scoreText.text = "P1: 0  P2: 0";
+                if (attemptsText != null)
+                    attemptsText.text = "Attempts: 0";
+            }
+        }
+
+        public void UpdateTurn(int player)
+        {
+            if (turnText == null || turnBannerBg == null) return;
+
+            Color playerColor = player == 0 ? GameConfig.PLAYER1_COLOR : GameConfig.PLAYER2_COLOR;
+            turnBannerBg.color = playerColor;
+            turnText.text = $"PLAYER {player + 1}'S TURN";
+        }
+
         public void UpdateScore(int matches, int attempts)
         {
+            if (currentMode == GameMode.TwoPlayer) return; // Use overload below
             if (scoreText != null)
                 scoreText.text = $"Matches: {matches}/15";
             if (attemptsText != null)
                 attemptsText.text = $"Attempts: {attempts}";
+        }
+
+        public void UpdateScore(int matches, int attempts, int[] playerMatches, int[] playerAttempts, int currentPlayer)
+        {
+            if (currentMode == GameMode.TwoPlayer)
+            {
+                if (scoreText != null)
+                    scoreText.text = $"P1: {playerMatches[0]}  P2: {playerMatches[1]}";
+                if (attemptsText != null)
+                    attemptsText.text = $"Attempts: {attempts}";
+            }
+            else
+            {
+                UpdateScore(matches, attempts);
+            }
         }
 
         /// <summary>
@@ -519,6 +590,27 @@ namespace Rebus.UI
             {
                 confettiParticles.Play();
             }
+        }
+
+        public void ShowVictory2P(string answer, int solvingPlayer, int[] playerMatches, int[] playerAttempts, float time)
+        {
+            StopTimer();
+            solvePuzzleButton.gameObject.SetActive(false);
+            turnBanner.SetActive(false);
+            victoryPanel.SetActive(true);
+
+            Color winnerColor = solvingPlayer == 0 ? GameConfig.PLAYER1_COLOR : GameConfig.PLAYER2_COLOR;
+            victoryTitleText.text = $"PLAYER {solvingPlayer + 1} WINS!";
+            victoryTitleText.color = winnerColor;
+
+            victoryAnswerText.text = answer.ToUpper();
+            victoryStatsText.text =
+                $"Player 1: {playerMatches[0]} matches ({playerAttempts[0]} attempts)\n" +
+                $"Player 2: {playerMatches[1]} matches ({playerAttempts[1]} attempts)\n" +
+                $"Time: {FormatTime(time)}";
+
+            if (confettiParticles != null)
+                confettiParticles.Play();
         }
 
         /// <summary>
@@ -563,14 +655,18 @@ namespace Rebus.UI
         /// </summary>
         public void ResetUI()
         {
-            UpdateScore(0, 0);
+            scoreText.text = "Matches: 0/15";
+            attemptsText.text = "Attempts: 0";
             solvePanel.SetActive(false);
             gameOverPanel.SetActive(false);
             victoryPanel.SetActive(false);
+            turnBanner.SetActive(false);
             solvePuzzleButton.gameObject.SetActive(true);
             elapsedTime = 0f;
             timerRunning = false;
             UpdateTimerDisplay();
+            victoryTitleText.text = "CONGRATULATIONS!";
+            victoryTitleText.color = goldColor;
 
             if (confettiParticles != null)
             {

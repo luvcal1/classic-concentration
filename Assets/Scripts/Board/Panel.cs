@@ -163,19 +163,46 @@ namespace Rebus.Board
         private IEnumerator MatchAnimation(Action onComplete)
         {
             IsAnimating = true;
-            float duration = Rebus.Core.GameConfig.MATCH_ANIMATION_TIME;
-            float elapsed = 0f;
-
-            Vector3 startScale = Vector3.one;
             CanvasGroup cg = gameObject.AddComponent<CanvasGroup>();
+
+            // Pick a random fly-away direction
+            float angle = UnityEngine.Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            Vector2 flyDirection = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            float flyDistance = 1200f; // pixels in canvas space
+
+            // Flap parameters
+            float duration = 0.8f;
+            float flapSpeed = UnityEngine.Random.Range(12f, 20f); // flaps per second
+            float flapAmplitude = 30f; // degrees of rotation wobble
+            float spinDir = UnityEngine.Random.Range(0, 2) == 0 ? 1f : -1f;
+
+            Vector3 startPos = rectTransform.anchoredPosition3D;
+            float startRotZ = 0f;
+            float elapsed = 0f;
 
             while (elapsed < duration)
             {
                 float t = elapsed / duration;
-                float scale = Mathf.Lerp(1f, 0.3f, t);
-                float alpha = Mathf.Lerp(1f, 0f, t);
-                rectTransform.localScale = new Vector3(scale, scale, 1f);
-                cg.alpha = alpha;
+
+                // Ease-in movement (accelerates as it flies away)
+                float moveFactor = t * t;
+                Vector2 offset = flyDirection * flyDistance * moveFactor;
+                rectTransform.anchoredPosition = (Vector2)startPos + offset;
+
+                // Flapping: oscillate X scale to simulate wing-like flapping
+                float flapPhase = Mathf.Sin(elapsed * flapSpeed * Mathf.PI * 2f);
+                float scaleX = Mathf.Lerp(1f, 0.15f, Mathf.Abs(flapPhase));
+                float scaleY = Mathf.Lerp(1f, 0.85f, (1f - scaleX) * 0.3f); // slight vertical squash during flap
+                rectTransform.localScale = new Vector3(scaleX, scaleY, 1f);
+
+                // Tumble rotation
+                float rotZ = startRotZ + spinDir * flapAmplitude * Mathf.Sin(elapsed * flapSpeed * Mathf.PI);
+                rotZ += spinDir * t * 90f; // gradual spin as it flies
+                rectTransform.localRotation = Quaternion.Euler(0f, 0f, rotZ);
+
+                // Fade out in the second half
+                cg.alpha = t < 0.5f ? 1f : Mathf.Lerp(1f, 0f, (t - 0.5f) * 2f);
+
                 elapsed += Time.deltaTime;
                 yield return null;
             }
