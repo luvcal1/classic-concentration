@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using TMPro;
 using Rebus.Board;
 using Rebus.Puzzle;
@@ -27,7 +26,12 @@ namespace Rebus.Core
             {
                 GameObject eventSystem = new GameObject("EventSystem");
                 eventSystem.AddComponent<EventSystem>();
-                eventSystem.AddComponent<InputSystemUIInputModule>();
+#if ENABLE_INPUT_SYSTEM
+                // Unity 6 new Input System
+                eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+#else
+                eventSystem.AddComponent<StandaloneInputModule>();
+#endif
             }
 
             // Ensure AudioManager exists
