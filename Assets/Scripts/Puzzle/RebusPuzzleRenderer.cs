@@ -16,8 +16,8 @@ namespace Rebus.Puzzle
         private List<CanvasGroup> elementGroups = new List<CanvasGroup>();
         private HashSet<int> revealedIndices = new HashSet<int>();
 
-        private static readonly Color BG_COLOR = new Color(0.04f, 0.04f, 0.10f, 0.95f);
-        private static readonly Color BORDER_COLOR = new Color(0f, 0.9f, 1f, 0.3f);
+        private static readonly Color BG_COLOR = new Color(0.04f, 0.03f, 0.10f, 0.95f);
+        private static readonly Color BORDER_COLOR = new Color(0.5f, 0.3f, 1f, 0.35f); // Purple glow
 
         private void Awake()
         {
@@ -42,16 +42,27 @@ namespace Rebus.Puzzle
             outline.effectColor = BORDER_COLOR;
             outline.effectDistance = new Vector2(2, 2);
 
-            // Inner highlight at top
+            // Top highlight - purple tint
             GameObject innerHL = new GameObject("InnerHighlight");
             innerHL.transform.SetParent(container, false);
             RectTransform hlRect = innerHL.AddComponent<RectTransform>();
-            hlRect.anchorMin = new Vector2(0, 0.85f);
+            hlRect.anchorMin = new Vector2(0, 0.8f);
             hlRect.anchorMax = new Vector2(1, 1);
             hlRect.offsetMin = Vector2.zero;
             hlRect.offsetMax = Vector2.zero;
             Image hlImg = innerHL.AddComponent<Image>();
-            hlImg.color = new Color(0.1f, 0.15f, 0.3f, 0.3f);
+            hlImg.color = new Color(0.15f, 0.08f, 0.30f, 0.3f);
+
+            // Bottom warm accent
+            GameObject bottomHL = new GameObject("BottomHighlight");
+            bottomHL.transform.SetParent(container, false);
+            RectTransform bhlRect = bottomHL.AddComponent<RectTransform>();
+            bhlRect.anchorMin = new Vector2(0, 0);
+            bhlRect.anchorMax = new Vector2(1, 0.2f);
+            bhlRect.offsetMin = Vector2.zero;
+            bhlRect.offsetMax = Vector2.zero;
+            Image bhlImg = bottomHL.AddComponent<Image>();
+            bhlImg.color = new Color(0.20f, 0.08f, 0.05f, 0.2f);
         }
 
         public void LoadPuzzle(RebusPuzzle puzzle)

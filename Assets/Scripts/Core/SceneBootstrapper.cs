@@ -19,10 +19,8 @@ namespace Rebus.Core
     {
         [SerializeField] private SceneType sceneType = SceneType.Game;
 
-        // Modern palette - shared across scene setup
-        private static readonly Color BG_DARK = new Color(0.06f, 0.06f, 0.12f);
-        private static readonly Color BG_MID = new Color(0.08f, 0.08f, 0.18f);
-        private static readonly Color BG_ACCENT = new Color(0.05f, 0.02f, 0.15f);
+        private static readonly Color BG_DARK = new Color(0.05f, 0.04f, 0.10f);
+        private static readonly Color BG_MID = new Color(0.08f, 0.06f, 0.18f);
 
         private void Awake()
         {
@@ -95,31 +93,53 @@ namespace Rebus.Core
             Image bgImage = bg.AddComponent<Image>();
             bgImage.color = BG_DARK;
 
-            // Upper gradient overlay (lighter at top)
+            // Purple-blue glow upper area
             GameObject bgTop = new GameObject("BgTopGrad");
             bgTop.transform.SetParent(canvasObj.transform, false);
             RectTransform bgTopRect = bgTop.AddComponent<RectTransform>();
-            bgTopRect.anchorMin = new Vector2(0, 0.5f);
+            bgTopRect.anchorMin = new Vector2(0, 0.55f);
             bgTopRect.anchorMax = new Vector2(1, 1);
             bgTopRect.offsetMin = Vector2.zero;
             bgTopRect.offsetMax = Vector2.zero;
             Image bgTopImg = bgTop.AddComponent<Image>();
-            bgTopImg.color = new Color(BG_MID.r, BG_MID.g, BG_MID.b, 0.6f);
+            bgTopImg.color = new Color(0.15f, 0.05f, 0.25f, 0.45f); // Purple tint
 
-            // Subtle colored accent in center
-            GameObject bgAccent = new GameObject("BgAccent");
-            bgAccent.transform.SetParent(canvasObj.transform, false);
-            RectTransform bgAccentRect = bgAccent.AddComponent<RectTransform>();
-            bgAccentRect.anchorMin = new Vector2(0, 0.2f);
-            bgAccentRect.anchorMax = new Vector2(1, 0.7f);
-            bgAccentRect.offsetMin = Vector2.zero;
-            bgAccentRect.offsetMax = Vector2.zero;
-            Image bgAccentImg = bgAccent.AddComponent<Image>();
-            bgAccentImg.color = new Color(0f, 0.15f, 0.3f, 0.25f);
+            // Warm amber/orange glow lower area
+            GameObject bgBottom = new GameObject("BgBottomGrad");
+            bgBottom.transform.SetParent(canvasObj.transform, false);
+            RectTransform bgBotRect = bgBottom.AddComponent<RectTransform>();
+            bgBotRect.anchorMin = new Vector2(0, 0);
+            bgBotRect.anchorMax = new Vector2(1, 0.35f);
+            bgBotRect.offsetMin = Vector2.zero;
+            bgBotRect.offsetMax = Vector2.zero;
+            Image bgBotImg = bgBottom.AddComponent<Image>();
+            bgBotImg.color = new Color(0.25f, 0.10f, 0.02f, 0.3f); // Warm amber tint
 
-            // Vignette edges (dark borders)
-            CreateVignetteEdge(canvasObj.transform, new Vector2(0, 0), new Vector2(1, 0.08f), BG_DARK, 0.8f); // bottom
-            CreateVignetteEdge(canvasObj.transform, new Vector2(0, 0.92f), new Vector2(1, 1), BG_DARK, 0.5f); // top
+            // Teal accent in center-left
+            GameObject bgAccentL = new GameObject("BgAccentLeft");
+            bgAccentL.transform.SetParent(canvasObj.transform, false);
+            RectTransform bgAccentLRect = bgAccentL.AddComponent<RectTransform>();
+            bgAccentLRect.anchorMin = new Vector2(0, 0.25f);
+            bgAccentLRect.anchorMax = new Vector2(0.5f, 0.65f);
+            bgAccentLRect.offsetMin = Vector2.zero;
+            bgAccentLRect.offsetMax = Vector2.zero;
+            Image bgAccentLImg = bgAccentL.AddComponent<Image>();
+            bgAccentLImg.color = new Color(0f, 0.18f, 0.25f, 0.2f);
+
+            // Pink accent in center-right
+            GameObject bgAccentR = new GameObject("BgAccentRight");
+            bgAccentR.transform.SetParent(canvasObj.transform, false);
+            RectTransform bgAccentRRect = bgAccentR.AddComponent<RectTransform>();
+            bgAccentRRect.anchorMin = new Vector2(0.5f, 0.3f);
+            bgAccentRRect.anchorMax = new Vector2(1, 0.7f);
+            bgAccentRRect.offsetMin = Vector2.zero;
+            bgAccentRRect.offsetMax = Vector2.zero;
+            Image bgAccentRImg = bgAccentR.AddComponent<Image>();
+            bgAccentRImg.color = new Color(0.20f, 0.05f, 0.15f, 0.2f);
+
+            // Vignette edges
+            CreateVignetteEdge(canvasObj.transform, new Vector2(0, 0), new Vector2(1, 0.06f), BG_DARK, 0.9f);
+            CreateVignetteEdge(canvasObj.transform, new Vector2(0, 0.94f), new Vector2(1, 1), BG_DARK, 0.6f);
 
             // --- Puzzle Area ---
             GameObject puzzleArea = new GameObject("PuzzleArea");

@@ -64,16 +64,38 @@ namespace Rebus.UI
             // Animated background grid
             CreateAnimatedBackground(canvasObj.transform);
 
-            // Ambient glow overlay (center radial feel)
-            GameObject glow = new GameObject("AmbientGlow");
-            glow.transform.SetParent(canvasObj.transform, false);
-            RectTransform glowRect = glow.AddComponent<RectTransform>();
-            glowRect.anchorMin = new Vector2(0, 0.2f);
-            glowRect.anchorMax = new Vector2(1, 0.8f);
-            glowRect.offsetMin = Vector2.zero;
-            glowRect.offsetMax = Vector2.zero;
-            Image glowImg = glow.AddComponent<Image>();
-            glowImg.color = new Color(0f, 0.15f, 0.25f, 0.2f);
+            // Purple glow upper
+            GameObject glowTop = new GameObject("GlowTop");
+            glowTop.transform.SetParent(canvasObj.transform, false);
+            RectTransform glowTopRect = glowTop.AddComponent<RectTransform>();
+            glowTopRect.anchorMin = new Vector2(0, 0.5f);
+            glowTopRect.anchorMax = new Vector2(1, 1);
+            glowTopRect.offsetMin = Vector2.zero;
+            glowTopRect.offsetMax = Vector2.zero;
+            Image glowTopImg = glowTop.AddComponent<Image>();
+            glowTopImg.color = new Color(0.18f, 0.05f, 0.30f, 0.25f);
+
+            // Warm glow lower
+            GameObject glowBot = new GameObject("GlowBottom");
+            glowBot.transform.SetParent(canvasObj.transform, false);
+            RectTransform glowBotRect = glowBot.AddComponent<RectTransform>();
+            glowBotRect.anchorMin = new Vector2(0, 0);
+            glowBotRect.anchorMax = new Vector2(1, 0.4f);
+            glowBotRect.offsetMin = Vector2.zero;
+            glowBotRect.offsetMax = Vector2.zero;
+            Image glowBotImg = glowBot.AddComponent<Image>();
+            glowBotImg.color = new Color(0.20f, 0.08f, 0.02f, 0.2f);
+
+            // Teal accent center
+            GameObject glowMid = new GameObject("GlowCenter");
+            glowMid.transform.SetParent(canvasObj.transform, false);
+            RectTransform glowMidRect = glowMid.AddComponent<RectTransform>();
+            glowMidRect.anchorMin = new Vector2(0.1f, 0.3f);
+            glowMidRect.anchorMax = new Vector2(0.9f, 0.7f);
+            glowMidRect.offsetMin = Vector2.zero;
+            glowMidRect.offsetMax = Vector2.zero;
+            Image glowMidImg = glowMid.AddComponent<Image>();
+            glowMidImg.color = new Color(0f, 0.15f, 0.22f, 0.15f);
 
             // Content container
             GameObject content = new GameObject("Content");
@@ -156,12 +178,16 @@ namespace Rebus.UI
                     pRect.offsetMax = new Vector2(-2, -2);
 
                     Image img = panel.AddComponent<Image>();
-                    float variation = Random.Range(-0.015f, 0.015f);
+                    // Each tile gets a slightly different color hue
+                    float hueShift = ((r * cols + c) % 6) / 6f;
+                    float rr = surfaceMid.r + Mathf.Sin(hueShift * Mathf.PI * 2f) * 0.06f;
+                    float gg = surfaceMid.g + Mathf.Sin((hueShift + 0.33f) * Mathf.PI * 2f) * 0.04f;
+                    float bb = surfaceMid.b + Mathf.Sin((hueShift + 0.66f) * Mathf.PI * 2f) * 0.06f;
                     img.color = new Color(
-                        surfaceMid.r + variation,
-                        surfaceMid.g + variation,
-                        surfaceMid.b + variation + 0.02f,
-                        0.3f
+                        Mathf.Clamp01(rr + Random.Range(-0.01f, 0.01f)),
+                        Mathf.Clamp01(gg + Random.Range(-0.01f, 0.01f)),
+                        Mathf.Clamp01(bb + Random.Range(-0.01f, 0.01f)),
+                        0.35f
                     );
 
                     bgPanels[idx] = pRect;
@@ -296,8 +322,15 @@ namespace Rebus.UI
 
             Image img = panel.GetComponent<Image>();
             Color originalColor = img.color;
-            // Flash with cyan glow instead of gold
-            Color flashColor = new Color(accentCyan.r, accentCyan.g, accentCyan.b, 0.12f);
+            // Flash with a random vibrant color
+            Color[] flashColors = {
+                new Color(0f, 0.9f, 1f, 0.15f),    // Cyan
+                new Color(1f, 0.4f, 0.7f, 0.15f),   // Pink
+                new Color(0.5f, 0.3f, 1f, 0.15f),   // Purple
+                new Color(1f, 0.7f, 0.2f, 0.15f),   // Gold
+                new Color(0.3f, 1f, 0.5f, 0.15f),   // Green
+            };
+            Color flashColor = flashColors[Random.Range(0, flashColors.Length)];
 
             float duration = 0.5f;
             float half = duration * 0.5f;

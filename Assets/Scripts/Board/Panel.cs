@@ -25,11 +25,18 @@ namespace Rebus.Board
         private Image backgroundImage;
         private RectTransform rectTransform;
 
-        // Modern color scheme
-        private static readonly Color FRONT_BASE = new Color(0.12f, 0.14f, 0.22f);
-        private static readonly Color FRONT_HIGHLIGHT = new Color(0.18f, 0.22f, 0.35f);
-        private static readonly Color BORDER_GLOW = new Color(0f, 0.9f, 1f, 0.4f);      // Cyan glow
-        private static readonly Color NUMBER_COLOR = new Color(0.6f, 0.85f, 1f);          // Light cyan
+        // Colorful panel hue palette - each panel gets a unique tint
+        private static readonly Color[] PANEL_HUES = {
+            new Color(0.20f, 0.10f, 0.35f), // Deep Purple
+            new Color(0.10f, 0.15f, 0.38f), // Navy
+            new Color(0.08f, 0.22f, 0.35f), // Dark Teal
+            new Color(0.12f, 0.28f, 0.20f), // Forest
+            new Color(0.30f, 0.12f, 0.18f), // Burgundy
+            new Color(0.32f, 0.18f, 0.08f), // Deep Amber
+        };
+
+        private Color panelHue;
+        private Color panelGlow;
 
         public void Initialize(int number, int row, int col, string prizeName, Color prizeColor)
         {
@@ -47,48 +54,63 @@ namespace Rebus.Board
 
         private void BuildVisuals()
         {
+            // Each panel gets a unique hue based on its number
+            int hueIdx = (PanelNumber - 1) % PANEL_HUES.Length;
+            panelHue = PANEL_HUES[hueIdx];
+
+            // Derive a brighter glow color from the hue
+            panelGlow = new Color(
+                Mathf.Clamp01(panelHue.r * 3f + 0.2f),
+                Mathf.Clamp01(panelHue.g * 3f + 0.2f),
+                Mathf.Clamp01(panelHue.b * 3f + 0.2f),
+                0.5f
+            );
+
             backgroundImage.color = Color.clear;
 
-            // Front face - modern card look
+            // Front face - uniquely tinted card
             frontFace = new GameObject("FrontFace");
             frontFace.transform.SetParent(transform, false);
             RectTransform frontRect = frontFace.AddComponent<RectTransform>();
             StretchFull(frontRect);
 
             Image frontBg = frontFace.AddComponent<Image>();
-            frontBg.color = FRONT_BASE;
+            frontBg.color = panelHue;
 
-            // Top highlight strip for subtle gradient feel
+            // Top highlight strip
             GameObject highlight = new GameObject("Highlight");
             highlight.transform.SetParent(frontFace.transform, false);
             RectTransform hlRect = highlight.AddComponent<RectTransform>();
-            hlRect.anchorMin = new Vector2(0, 0.6f);
+            hlRect.anchorMin = new Vector2(0, 0.55f);
             hlRect.anchorMax = new Vector2(1, 1);
             hlRect.offsetMin = Vector2.zero;
             hlRect.offsetMax = Vector2.zero;
             Image hlImg = highlight.AddComponent<Image>();
-            hlImg.color = new Color(FRONT_HIGHLIGHT.r, FRONT_HIGHLIGHT.g, FRONT_HIGHLIGHT.b, 0.5f);
+            hlImg.color = new Color(1f, 1f, 1f, 0.1f);
 
-            // Inner border glow
+            // Colored border glow matching panel hue
             Outline frontOutline = frontFace.AddComponent<Outline>();
-            frontOutline.effectColor = BORDER_GLOW;
+            frontOutline.effectColor = panelGlow;
             frontOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
-            // Drop shadow for depth
+            // Drop shadow
             Shadow frontShadow = frontFace.AddComponent<Shadow>();
             frontShadow.effectColor = new Color(0, 0, 0, 0.5f);
             frontShadow.effectDistance = new Vector2(3, -3);
 
-            // Number text
+            // Number text - tinted to match panel
             GameObject numObj = new GameObject("Number");
             numObj.transform.SetParent(frontFace.transform, false);
             RectTransform numRect = numObj.AddComponent<RectTransform>();
             StretchFull(numRect);
 
+            Color numColor = Color.Lerp(panelGlow, Color.white, 0.5f);
+            numColor.a = 1f;
+
             TextMeshProUGUI numText = numObj.AddComponent<TextMeshProUGUI>();
             numText.text = PanelNumber.ToString();
             numText.fontSize = 44;
-            numText.color = NUMBER_COLOR;
+            numText.color = numColor;
             numText.alignment = TextAlignmentOptions.Center;
             numText.fontStyle = FontStyles.Bold;
 

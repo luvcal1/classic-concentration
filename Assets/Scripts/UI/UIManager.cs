@@ -401,7 +401,7 @@ namespace Rebus.UI
             card.GetComponent<Image>().color = surfaceMid;
 
             Outline cardOutline = card.AddComponent<Outline>();
-            cardOutline.effectColor = new Color(accentGold.r, accentGold.g, accentGold.b, 0.3f);
+            cardOutline.effectColor = new Color(1f, 0.5f, 0.8f, 0.35f); // Pink-gold glow
             cardOutline.effectDistance = new Vector2(2f, -2f);
 
             VerticalLayoutGroup vLayout = card.AddComponent<VerticalLayoutGroup>();
@@ -467,9 +467,23 @@ namespace Rebus.UI
             main.startLifetime = 3f;
             main.startSpeed = new ParticleSystem.MinMaxCurve(200f, 400f);
             main.startSize = new ParticleSystem.MinMaxCurve(10f, 25f);
-            main.startColor = new ParticleSystem.MinMaxGradient(accentCyan, accentGold);
+            Gradient startGradient = new Gradient();
+            startGradient.SetKeys(
+                new GradientColorKey[] {
+                    new GradientColorKey(accentCyan, 0f),
+                    new GradientColorKey(new Color(1f, 0.4f, 0.7f), 0.25f),  // Pink
+                    new GradientColorKey(accentGold, 0.5f),
+                    new GradientColorKey(new Color(0.5f, 0.3f, 1f), 0.75f),  // Purple
+                    new GradientColorKey(successGreen, 1f)
+                },
+                new GradientAlphaKey[] {
+                    new GradientAlphaKey(1f, 0f),
+                    new GradientAlphaKey(1f, 1f)
+                }
+            );
+            main.startColor = new ParticleSystem.MinMaxGradient(startGradient);
             main.gravityModifier = 0.5f;
-            main.maxParticles = 200;
+            main.maxParticles = 250;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
 
             var emission = confettiParticles.emission;
@@ -485,8 +499,10 @@ namespace Rebus.UI
             gradient.SetKeys(
                 new GradientColorKey[] {
                     new GradientColorKey(accentCyan, 0f),
+                    new GradientColorKey(new Color(1f, 0.4f, 0.7f), 0.25f),
                     new GradientColorKey(accentGold, 0.5f),
-                    new GradientColorKey(accentCyan, 1f)
+                    new GradientColorKey(new Color(0.5f, 0.3f, 1f), 0.75f),
+                    new GradientColorKey(successGreen, 1f)
                 },
                 new GradientAlphaKey[] {
                     new GradientAlphaKey(1f, 0f),
